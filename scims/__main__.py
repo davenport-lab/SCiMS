@@ -269,16 +269,16 @@ def main():
                 'Total reads mapped X/Z': x_count,
                 'Total reads mapped Y/W': y_count,
                 'SCiMS predicted sex': inferred_sex,
-                'Posterior probability of being male': posterior_male,
-                'Posterior probability of being female': posterior_female,
+                'Posterior probability of being male': float(np.round(posterior_male, 4)),
+                'Posterior probability of being female': float(np.round(posterior_female, 4)),
                 'Status': 'Success'
             }
 
             if args.system == 'XY':
-                result['Rx'] = np.round(Rx, 4) if np.isfinite(Rx) else np.nan
-                result['Rx 95% CI'] = (np.round(CI1_Rx, 3), np.round(CI2_Rx, 3)) if np.isfinite(CI1_Rx) and np.isfinite(CI2_Rx) else (np.nan, np.nan)
-                result['Ry'] = np.round(Ry, 4) if np.isfinite(Ry) else np.nan
-                result['Ry 95% CI'] = (np.round(CI1_y, 3), np.round(CI2_y, 3)) if np.isfinite(CI1_y) and np.isfinite(CI2_y) else (np.nan, np.nan)
+                result['Rx'] = float(np.round(Rx, 4)) if np.isfinite(Rx) else np.nan
+                result['Rx 95% CI'] = (float(np.round(CI1_Rx, 3)), float(np.round(CI2_Rx, 3))) if np.isfinite(CI1_Rx) and np.isfinite(CI2_Rx) else (np.nan, np.nan)
+                result['Ry'] = float(np.round(Ry, 4)) if np.isfinite(Ry) else np.nan
+                result['Ry 95% CI'] = (float(np.round(CI1_y, 3)), float(np.round(CI2_y, 3))) if np.isfinite(CI1_y) and np.isfinite(CI2_y) else (np.nan, np.nan)
 
         else:  # ZW system
             z_id = args.x_id
@@ -343,15 +343,15 @@ def main():
                 'Total reads mapped X/Z': z_count,
                 'Total reads mapped Y/W': w_count,
                 'SCiMS predicted sex': inferred_sex,
-                'Posterior probability of being male': posterior_male,
-                'Posterior probability of being female': posterior_female,
+                'Posterior probability of being male': float(np.round(posterior_male, 4)),
+                'Posterior probability of being female': float(np.round(posterior_female, 4)),
                 'Status': 'Success'
             }
 
-            result['Rz'] = np.round(Rz, 4) if np.isfinite(Rz) else np.nan
-            result['Rz 95% CI'] = (np.round(CI1_Rz, 3), np.round(CI2_Rz, 3)) if np.isfinite(CI1_Rz) and np.isfinite(CI2_Rz) else (np.nan, np.nan)
-            result['Rw'] = np.round(Rw, 4) if np.isfinite(Rw) else np.nan
-            result['Rw 95% CI'] = (np.round(CI1_w, 3), np.round(CI2_w, 3)) if np.isfinite(CI1_w) and np.isfinite(CI2_w) else (np.nan, np.nan)
+            result['Rz'] = float(np.round(Rz, 4)) if np.isfinite(Rz) else np.nan
+            result['Rz 95% CI'] = (float(np.round(CI1_Rz, 3)), float(np.round(CI2_Rz, 3))) if np.isfinite(CI1_Rz) and np.isfinite(CI2_Rz) else (np.nan, np.nan)
+            result['Rw'] = float(np.round(Rw, 4)) if np.isfinite(Rw) else np.nan
+            result['Rw 95% CI'] = (float(np.round(CI1_w, 3)), float(np.round(CI2_w, 3))) if np.isfinite(CI1_w) and np.isfinite(CI2_w) else (np.nan, np.nan)
         
         results.append(result)
 
