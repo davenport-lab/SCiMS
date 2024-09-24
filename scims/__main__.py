@@ -49,23 +49,14 @@ def find_sample_id_column(metadata):
             return col
     raise ValueError("No valid sample ID column found in metadata file. Expected one of: " + ", ".join(possible_column_names))
 
-# Extract sample ID using the longest common substring
 def extract_sample_id(filename, known_sample_ids):
     """Extract sample ID using the longest common substring method."""
     filename_base = os.path.splitext(filename)[0]
-    best_match = ""
-    longest_match_length = 0
-    
-    for sample_id in known_sample_ids:
-        match_length = len(os.path.commonprefix([filename_base, sample_id]))
-        if match_length > longest_match_length:
-            longest_match_length = match_length
-            best_match = sample_id
-            
-    if longest_match_length > 0:
-        return best_match
+    if filename_base in known_sample_ids:
+        return filename_base
     else:
-        raise ValueError(f"Cannot match sample ID from filename: {filename}")
+        raise ValueError(f"Cannot find a matching sample ID for the file '{filename_base}'. Ensure filenames match sample IDs in the metadata exactly.")
+
 def standardize_id(sample_id):
     """Standardize sample ID"""
     return sample_id.replace(" ", "_").replace(".", "_").replace("-", "_")
