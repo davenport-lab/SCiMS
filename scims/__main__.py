@@ -88,9 +88,9 @@ def calculate_posterior(prior_male, prior_female, likelihood_male_ry, likelihood
 
 def determine_sex(posterior_male, posterior_female, threshold):
     """Determine sex based on posterior probabilities and threshold"""
-    if posterior_male > threshold:
+    if posterior_male >= threshold:
         return "male"
-    elif posterior_female > threshold:
+    elif posterior_female >= threshold:
         return "female"
     else:
         return "uncertain"
@@ -135,9 +135,9 @@ def main():
     logging.info(f"Training data is loaded successfully")
 
     # Flip the sex labels if the system is ZW
-    if args.system == 'ZW':
-        training_data['actual_sex'] = training_data['actual_sex'].apply(lambda x: 'female' if x == 'male' else 'male')
-        logging.info(f"Training data is adjusted for ZW system")
+    #if args.system == 'ZW':
+    #    training_data['actual_sex'] = training_data['actual_sex'].apply(lambda x: 'female' if x == 'male' else 'male')
+   #     logging.info(f"Training data is adjusted for ZW system")
 
     # Separate Ry values by known sex
     ry_values_male = training_data[training_data['actual_sex'] == 'male']['Ry'].values
@@ -148,7 +148,18 @@ def main():
     ry_values_female_transformed = logit_transform(ry_values_female)
 
     kde_ry_male_transformed = gaussian_kde(ry_values_male_transformed)
-    kde_ry_female_transformed = gaussian_kde(ry_values_female_transformed)
+    kde_ry_female_transformed = gaussian_kde(ry_values_female_transformed)  
+
+    # Flip the sex labels if the system is ZW
+    # Separate Ry values by known sex
+    rw_values_male = training_data[training_data['actual_sex'] == 'female']['Ry'].values
+    rw_values_female = training_data[training_data['actual_sex'] == 'male']['Ry'].values
+
+    rw_values_male_transformed = logit_transform(rw_values_male)
+    rw_values_female_transformed = logit_transform(rw_values_female)
+
+    kde_rw_male_transformed = gaussian_kde(rw_values_male_transformed)
+    kde_rw_female_transformed = gaussian_kde(rw_values_female_transformed)
 
     # Load metadata
     metadata = read_metadata(args.metadata)
@@ -265,11 +276,11 @@ def main():
             z_id = args.x_id
             w_id = args.y_id
 
-            if z_id not in idxstats.index:
+            if z_id not in idxstats_filtered.index:
                 raise ValueError(f"{z_id} not found in the filtered idxstats")
-
-            z_index = idxstats.index.get_loc(z_id)
-            w_index = idxstats.index.get_loc(w_id) if w_id in idxstats.index else None
+            
+            z_index = idxstats_filtered.index.get_loc(z_id)
+            w_index = idxstats_filtered.index.get_loc(w_id) if w_id in idxstats_filtered.index else None
 
             # Calculate Rx by comparing the X chromosome to the mean of the autosomes
             autosomal_Rt_values = np.array([Rt_values[i] for i in range(len(Rt_values)) if i != z_index and (w_index is None or i != w_index)])
@@ -283,8 +294,8 @@ def main():
             CI1_Rz, CI2_Rz = sorted([Rz - conf_interval, Rz + conf_interval])
 
             # Calculate Rw and CIs
-            z_count = idxstats.loc[z_id].iloc[1] # Number of reads mapped to Z chromosome
-            w_count = idxstats.loc[w_id].iloc[1] # Number of reads mapped to W chromosome
+            z_count = idxstats_filtered.loc[z_id].iloc[1] # Number of reads mapped to Z chromosome
+            w_count = idxstats_filtered.loc[w_id].iloc[1] # Number of reads mapped to W chromosome
             tot_zw = z_count + w_count # Total number of reads mapped to W chromoso e
 
             if tot_zw == 0:
@@ -303,26 +314,26 @@ def main():
                 CI1_w, CI2_w = sorted([Rw - conf_interval, Rw + conf_interval])
 
                 # When applying KDE on new samples, transform the new Ry values using the same logit transform
-                Ry_transformed = logit_transform(Rw)  # Note: Using Rw for ZW system
+                Rw_transformed = logit_transform(Rw)  # Note: Using Rw for ZW system
         
-                # Validate Ry_transformed
-                if not np.isfinite(Ry_transformed):
+                # Validate Rw_transformed
+                if not np.isfinite(Rw_transformed):
                     # Handle invalid transformed Ry
                     inferred_sex = 'uncertain'
                     posterior_male = np.nan
                     posterior_female = np.nan
                 else:
                     # Apply KDE to the transformed values
-                    likelihood_male_Ry = kde_ry_male_transformed.evaluate([Ry_transformed])[0]
-                    likelihood_female_Ry = kde_ry_female_transformed.evaluate([Ry_transformed])[0]
+                    likelihood_male_Rw = kde_rw_male_transformed.evaluate([Rw_transformed])[0]
+                    likelihood_female_Rw = kde_rw_female_transformed.evaluate([Rw_transformed])[0]
 
                     prior_male = 0.5
                     prior_female = 0.5
                 
                     # Use KDE models for posterior calculation
-                    posterior_male, posterior_female = calculate_posterior(prior_male, prior_female, likelihood_male_Ry, likelihood_female_Ry)
+                    posterior_male, posterior_female = calculate_posterior(prior_male, prior_female, likelihood_male_Rw, likelihood_female_Rw)
                 
-                    inferred_sex = determine_sex(posterior_female, posterior_male, threshold=args.threshold)
+                    inferred_sex = determine_sex(posterior_male, posterior_female, threshold=args.threshold)
 
             result = {
                 'SCiMS sample ID': sample_id,
