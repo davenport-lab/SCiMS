@@ -74,7 +74,6 @@ def match_sample_ids(metadata, results_df, sample_id_col):
 
     return merged_df
 
-
 def read_master_file(master_file):
     """Read master file containing idxstats file paths"""
     with open(master_file, 'r') as file:
@@ -95,16 +94,6 @@ def determine_sex(posterior_male, posterior_female, threshold):
         return "female"
     else:
         return "uncertain"
-    
-def calculate_confidence_interval(Rx, threshold):
-    """Calculate confidence intervals for Rx/Rz"""
-    mean_val = np.mean(Rx)
-    z_value = norm.ppf(1 - threshold)
-    std_dev = np.std(Rx)
-    margin_of_error = z_value * (std_dev / np.sqrt(len(Rx)))
-    lower_bound = mean_val - margin_of_error
-    upper_bound = mean_val + margin_of_error
-    return mean_val,lower_bound, upper_bound
 
 def logit_transform(Ry):
     """Transform Ry values using logit function"""
@@ -209,7 +198,10 @@ def main():
             Rx = Rt_values[x_index] / mean_autosomal_Rt
 
             # Calculate Rx and CIs
-            Rx, CI1_Rx, CI2_Rx = calculate_confidence_interval(autosomal_Rt_values, args.threshold)
+            z_value = norm.ppf(1 - args.threshold)
+            conf_interval = (np.std(autosomal_Rt_values) / np.sqrt(len(autosomal_Rt_values))) * z_value
+            CI1_Rx = Rx - conf_interval
+            CI2_Rx = Rx + conf_interval
 
             # Calculate Ry and CIs
             x_count = idxstats.loc[x_id].iloc[1] # Number of reads mapped to X chromosome
@@ -227,7 +219,7 @@ def main():
                 posterior_female = np.nan
             else:
                 Ry = (1.0 * y_count) / tot_y
-                conf_interval = 1.96 * np.sqrt((Ry * (1 - Ry)) / tot_y)
+                conf_interval = z_value * np.sqrt((Ry * (1 - Ry)) / tot_y)
                 CI1_y = Ry - conf_interval
                 CI2_y = Ry + conf_interval
 
@@ -280,10 +272,17 @@ def main():
 
             z_index = idxstats.index.get_loc(z_id)
             w_index = idxstats.index.get_loc(w_id) if w_id in idxstats.index else None
-            
+
+            # Calculate Rx by comparing the X chromosome to the mean of the autosomes
+            autosomal_Rt_values = np.array([Rt_values[i] for i in range(len(Rt_values)) if i != z_index and (w_index is None or i != w_index)])
+            mean_autosomal_Rt = np.mean(autosomal_Rt_values)
+
             # Calculate Rz and CIs
-            copy = [Rt_values[x] for x in range(len(Rt_values)) if x != z_index and (w_index is None or x != w_index)]
-            Rz, CI1_Rz, CI2_Rz = calculate_confidence_interval(copy, args.threshold)
+            Rz = Rt_values[z_index] / mean_autosomal_Rt
+            z_value = norm.ppf(1 - args.threshold)
+            conf_interval = (np.std(autosomal_Rt_values) / np.sqrt(len(autosomal_Rt_values))) * z_value
+            CI1_Rz = Rz - conf_interval
+            CI2_Rz = Rz + conf_interval
 
             # Calculate Rw and CIs
             z_count = idxstats.loc[z_id].iloc[1] # Number of reads mapped to Z chromosome
@@ -302,7 +301,7 @@ def main():
             else:
                 Rw = (1.0 * w_count) / tot_w
 
-                conf_interval = 1.96 * np.sqrt((Rw * (1 - Rw)) / tot_w)
+                conf_interval = z_value * np.sqrt((Rw * (1 - Rw)) / tot_w)
                 CI1_w = Rw - conf_interval
                 CI2_w = Rw + conf_interval
 
