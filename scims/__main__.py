@@ -193,22 +193,21 @@ def main():
             y_index = idxstats_filtered.index.get_loc(y_id) if y_id in idxstats_filtered.index else None
 
             # Calculate Rx by comparing the X chromosome to the mean of the autosomes
-            autosomal_Rt_values = np.array([Rt_values[i] for i in range(len(Rt_values)) if i != x_index and (y_index is None or i != y_index)])
-            mean_autosomal_Rt = np.mean(autosomal_Rt_values)
-            Rx = Rt_values[x_index] / mean_autosomal_Rt
+            autosomal_Rt_values = np.array([Rt_values[i] for i in range(len(Rt_values)) if i != x_index and (y_index is None or i != y_index)]) # get rt value for each autosome
+            tot = Rt_values[x_index]/autosomal_Rt_values # calculate ratio of each X:autosome pair
+            Rx = np.mean(tot) # calculate mean of all X:autosome pairs
 
             # Calculate Rx and CIs
-            z_value = norm.ppf(1 - args.threshold)
+            z_value = np.round(norm.ppf(1 - args.threshold), 3)
             conf_interval = (np.std(autosomal_Rt_values) / np.sqrt(len(autosomal_Rt_values))) * z_value
-            CI1_Rx = Rx - conf_interval
-            CI2_Rx = Rx + conf_interval
+            CI1_Rx, CI2_Rx = sorted([Rx - conf_interval, Rx + conf_interval])
 
             # Calculate Ry and CIs
             x_count = idxstats.loc[x_id].iloc[1] # Number of reads mapped to X chromosome
             y_count = idxstats.loc[y_id].iloc[1] # Number of reads mapped to Y chromosome
-            tot_y = x_count + y_count # Total number of reads mapped to Y chromosome    
+            tot_xy = x_count + y_count # Total number of reads mapped to Y chromosome    
 
-            if tot_y == 0:
+            if tot_xy == 0:
                 # Handle division by zero
                 Ry = np.nan
                 conf_interval = np.nan
@@ -218,10 +217,9 @@ def main():
                 posterior_male = np.nan
                 posterior_female = np.nan
             else:
-                Ry = (1.0 * y_count) / tot_y
-                conf_interval = z_value * np.sqrt((Ry * (1 - Ry)) / tot_y)
-                CI1_y = Ry - conf_interval
-                CI2_y = Ry + conf_interval
+                Ry = (1.0 * y_count) / tot_xy
+                conf_interval = z_value * (np.sqrt((Ry * (1 - Ry)) / tot_xy))
+                CI1_y, CI2_y = sorted([Ry - conf_interval, Ry + conf_interval])
 
                 # When applying KDE on new samples, transform the new Ry values using the same logit transform
                 Ry_transformed = logit_transform(Ry)
@@ -275,21 +273,21 @@ def main():
 
             # Calculate Rx by comparing the X chromosome to the mean of the autosomes
             autosomal_Rt_values = np.array([Rt_values[i] for i in range(len(Rt_values)) if i != z_index and (w_index is None or i != w_index)])
-            mean_autosomal_Rt = np.mean(autosomal_Rt_values)
-
+            tot = Rt_values[z_index]/autosomal_Rt_values # calculate ratio of each Z:autosome pair
+            
             # Calculate Rz and CIs
-            Rz = Rt_values[z_index] / mean_autosomal_Rt
-            z_value = norm.ppf(1 - args.threshold)
+            Rz = np.mean(tot) # calculate mean of all Z:autosome pairs
+
+            z_value = np.round(norm.ppf(1 - args.threshold), 3)
             conf_interval = (np.std(autosomal_Rt_values) / np.sqrt(len(autosomal_Rt_values))) * z_value
-            CI1_Rz = Rz - conf_interval
-            CI2_Rz = Rz + conf_interval
+            CI1_Rz, CI2_Rz = sorted([Rz - conf_interval, Rz + conf_interval])
 
             # Calculate Rw and CIs
             z_count = idxstats.loc[z_id].iloc[1] # Number of reads mapped to Z chromosome
             w_count = idxstats.loc[w_id].iloc[1] # Number of reads mapped to W chromosome
-            tot_w = z_count + w_count # Total number of reads mapped to W chromoso e
+            tot_zw = z_count + w_count # Total number of reads mapped to W chromoso e
 
-            if tot_w == 0:
+            if tot_zw == 0:
                 # Handle division by zero
                 Rw = np.nan
                 conf_interval = np.nan
@@ -299,11 +297,10 @@ def main():
                 posterior_male = np.nan
                 posterior_female = np.nan
             else:
-                Rw = (1.0 * w_count) / tot_w
+                Rw = (1.0 * w_count) / tot_zw
 
-                conf_interval = z_value * np.sqrt((Rw * (1 - Rw)) / tot_w)
-                CI1_w = Rw - conf_interval
-                CI2_w = Rw + conf_interval
+                conf_interval = z_value * (np.sqrt((Rw * (1 - Rw)) / tot_zw))
+                CI1_w, CI2_w = sorted([Rw - conf_interval, Rw + conf_interval])
 
                 # When applying KDE on new samples, transform the new Ry values using the same logit transform
                 Ry_transformed = logit_transform(Rw)  # Note: Using Rw for ZW system
